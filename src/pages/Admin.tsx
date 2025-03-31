@@ -12,7 +12,7 @@ import { dataService, Tournament, Player } from "@/lib/data-service";
 import { toast } from "sonner";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Upload, X } from "lucide-react";
+import { Trophy, Upload, X, Link as LinkIcon } from "lucide-react";
 
 const Admin = () => {
   const { isAdmin, isAuthenticated } = useAuth();
@@ -22,6 +22,7 @@ const Admin = () => {
   const [newTournamentName, setNewTournamentName] = useState("");
   const [newPlayerName, setNewPlayerName] = useState("");
   const [challongeUrl, setChallongeUrl] = useState("");
+  const [editChallongeUrl, setEditChallongeUrl] = useState("");
 
   useEffect(() => {
     // Redirect if not admin
@@ -76,10 +77,29 @@ const Admin = () => {
 
   const openTournamentManagement = (tournament: Tournament) => {
     setSelectedTournament(tournament);
+    setEditChallongeUrl(tournament.challongeUrl || "");
   };
 
   const closeTournamentManagement = () => {
     setSelectedTournament(null);
+    setEditChallongeUrl("");
+  };
+
+  const updateTournamentChallonge = () => {
+    if (!selectedTournament) return;
+    
+    dataService.updateTournament(selectedTournament.id, { challongeUrl: editChallongeUrl });
+    
+    // Update local state
+    const updatedTournaments = tournaments.map(t => 
+      t.id === selectedTournament.id ? {...t, challongeUrl: editChallongeUrl} : t
+    );
+    setTournaments(updatedTournaments);
+    
+    // Also update selectedTournament
+    setSelectedTournament({...selectedTournament, challongeUrl: editChallongeUrl});
+    
+    toast.success("URL Challonge aggiornato con successo!");
   };
 
   const addPlayer = () => {
@@ -178,6 +198,11 @@ const Admin = () => {
     
     // In a real app, you would remove the player's deck list reference from the database
   };
+  
+  const viewUserProfile = (playerName: string) => {
+    // Navigate to the user profile or open a modal to edit user details
+    navigate(`/player/${encodeURIComponent(playerName)}`);
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -241,6 +266,19 @@ const Admin = () => {
                         <p className="text-xs text-muted-foreground">
                           Creato il {new Date(tournament.created).toLocaleDateString()}
                         </p>
+                        {tournament.challongeUrl && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <LinkIcon className="h-3 w-3 text-amber-600" />
+                            <a 
+                              href={tournament.challongeUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                            >
+                              Challonge
+                            </a>
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -281,6 +319,42 @@ const Admin = () => {
               </Button>
             </CardHeader>
             <CardContent className="pt-4">
+              <div className="mb-6 p-4 bg-amber-50/80 dark:bg-amber-900/30 rounded-md border border-amber-200 dark:border-amber-800">
+                <h3 className="text-lg font-medium text-amber-900 dark:text-amber-500 mb-4">Impostazioni Torneo</h3>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">URL Challonge</label>
+                    <Input
+                      placeholder="URL Challonge"
+                      value={editChallongeUrl}
+                      onChange={(e) => setEditChallongeUrl(e.target.value)}
+                      className="bg-amber-50/80 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={updateTournamentChallonge}
+                      className="bg-amber-700 hover:bg-amber-800 text-amber-50"
+                    >
+                      Aggiorna URL
+                    </Button>
+                  </div>
+                </div>
+                {selectedTournament.challongeUrl && (
+                  <div className="mt-4">
+                    <a 
+                      href={selectedTournament.challongeUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 flex items-center gap-2"
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                      Visualizza su Challonge
+                    </a>
+                  </div>
+                )}
+              </div>
+            
               <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <Input
                   placeholder="Nome giocatore"
@@ -322,7 +396,12 @@ const Admin = () => {
                               )}
                             </Avatar>
                             <div>
-                              <p className="font-medium">{player.name}</p>
+                              <button 
+                                className="font-medium hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                                onClick={() => viewUserProfile(player.name)}
+                              >
+                                {player.name}
+                              </button>
                               <p className="text-sm text-muted-foreground">
                                 Punti: {player.points} - Posizione: {player.position}°
                               </p>

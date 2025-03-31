@@ -43,6 +43,12 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Colori specifici per i tornei */
+    --tournament-primary: 210 29% 24%;
+    --qualifiers-primary: 25 84% 52%;
+    --points-primary: 204 62% 44%;
+    --rewards-primary: 145 63% 42%;
   }
 
   .dark {
@@ -73,6 +79,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -81,6 +88,12 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Colori specifici per i tornei in dark mode */
+    --tournament-primary: 210 29% 34%;
+    --qualifiers-primary: 25 84% 58%;
+    --points-primary: 204 62% 55%;
+    --rewards-primary: 145 63% 48%;
   }
 }
 
@@ -96,22 +109,66 @@
 
 @layer components {
   .tournament-table th {
-    @apply bg-tournament text-white py-3;
+    @apply bg-[hsl(var(--tournament-primary))] text-white py-3;
   }
   
   .qualifiers-table th {
-    @apply bg-qualifiers text-white py-3;
+    @apply bg-[hsl(var(--qualifiers-primary))] text-white py-3;
   }
   
   .points-table th {
-    @apply bg-points text-white py-3;
+    @apply bg-[hsl(var(--points-primary))] text-white py-3;
   }
   
   .rewards-table th {
-    @apply bg-rewards text-white py-3;
+    @apply bg-[hsl(var(--rewards-primary))] text-white py-3;
   }
   
   .position-cell {
     @apply whitespace-nowrap;
+  }
+  
+  .player-name {
+    @apply cursor-pointer hover:underline hover:text-primary transition-colors;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  .tournament-card {
+    @apply bg-gradient-to-br from-card to-secondary/80 backdrop-blur-sm;
+  }
+  
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  .badge-tournament {
+    @apply bg-[hsl(var(--tournament-primary))] text-white;
+  }
+  
+  .badge-qualified {
+    @apply bg-[hsl(var(--qualifiers-primary))] text-white;
+  }
+  
+  .glass-card {
+    @apply backdrop-blur-md bg-white/10 border border-white/20 dark:border-white/10;
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .float-animation {
+    animation: float 3s ease-in-out infinite;
   }
 }

@@ -5,6 +5,7 @@ export type Player = {
   points: number;
   position: number;
   qualified: boolean;
+  photoUrl?: string;
 };
 
 export type Tournament = {
@@ -12,6 +13,11 @@ export type Tournament = {
   name: string;
   created: string;
   players: Player[];
+  registrationOpen: boolean;
+  maxPlayers?: number;
+  date?: string;
+  challongeUrl?: string;
+  registeredPlayers?: string[];
 };
 
 export type Reward = {
@@ -25,11 +31,13 @@ const DEFAULT_TOURNAMENTS: Tournament[] = [
     name: "I 4 Imperatori",
     created: new Date('2023-01-15').toISOString(),
     players: [
-      { id: "p1", name: "Angelo Truscello", points: 120, position: 1, qualified: true },
+      { id: "p1", name: "Angelo Truscello", points: 120, position: 1, qualified: true, photoUrl: "/lovable-uploads/a23dde70-746a-40c1-9cea-82d425ae82fc.png" },
       { id: "p2", name: "Samuele Sindona", points: 80, position: 2, qualified: false },
       { id: "p3", name: "Adriano Zingales", points: 60, position: 3, qualified: false },
       { id: "p4", name: "Matteo Trimarchi", points: 60, position: 4, qualified: false }
-    ]
+    ],
+    registrationOpen: false,
+    challongeUrl: "https://challonge.com/it/4imperatori"
   },
   {
     id: "2",
@@ -40,7 +48,9 @@ const DEFAULT_TOURNAMENTS: Tournament[] = [
       { id: "p6", name: "Valentino Fusco", points: 40, position: 2, qualified: false },
       { id: "p1", name: "Angelo Truscello", points: 0, position: 3, qualified: false },
       { id: "p7", name: "Felice Zanola", points: 20, position: 4, qualified: false }
-    ]
+    ],
+    registrationOpen: false,
+    challongeUrl: "https://challonge.com/it/maggio2023"
   },
   {
     id: "3",
@@ -51,7 +61,19 @@ const DEFAULT_TOURNAMENTS: Tournament[] = [
       { id: "p9", name: "Salvatore Rossello", points: 10, position: 2, qualified: false },
       { id: "p10", name: "Gioele Gaipa", points: 10, position: 3, qualified: false },
       { id: "p11", name: "Gabriele Calanna", points: 10, position: 4, qualified: false }
-    ]
+    ],
+    registrationOpen: false,
+    challongeUrl: "https://challonge.com/it/giugno2023"
+  },
+  {
+    id: "4",
+    name: "Torneo Estate 2023",
+    created: new Date('2023-07-10').toISOString(),
+    players: [],
+    registrationOpen: true,
+    maxPlayers: 16,
+    date: new Date('2023-07-25').toISOString(),
+    registeredPlayers: ["2"]
   }
 ];
 
@@ -88,16 +110,25 @@ export class DataService {
     return [...this.tournaments];
   }
   
+  getUpcomingTournaments(): Tournament[] {
+    return this.tournaments.filter(t => t.registrationOpen);
+  }
+  
   getTournament(id: string): Tournament | undefined {
     return this.tournaments.find(t => t.id === id);
   }
   
-  createTournament(name: string): Tournament {
+  createTournament(name: string, date?: string, maxPlayers?: number, challongeUrl?: string): Tournament {
     const newTournament = {
       id: Date.now().toString(),
       name,
       created: new Date().toISOString(),
-      players: []
+      players: [],
+      registrationOpen: true,
+      maxPlayers,
+      date,
+      challongeUrl,
+      registeredPlayers: []
     };
     
     this.tournaments.push(newTournament);
@@ -126,6 +157,53 @@ export class DataService {
     return deleted;
   }
   
+  registerPlayerForTournament(tournamentId: string, userId: string): boolean {
+    const tournamentIndex = this.tournaments.findIndex(t => t.id === tournamentId);
+    if (tournamentIndex === -1) return false;
+    
+    const tournament = this.tournaments[tournamentIndex];
+    
+    // Verificare se la registrazione è aperta
+    if (!tournament.registrationOpen) return false;
+    
+    // Verificare se ci sono posti disponibili
+    if (tournament.maxPlayers && 
+        tournament.registeredPlayers && 
+        tournament.registeredPlayers.length >= tournament.maxPlayers) {
+      return false;
+    }
+    
+    // Verificare se il giocatore è già registrato
+    if (!tournament.registeredPlayers) {
+      tournament.registeredPlayers = [];
+    }
+    
+    if (tournament.registeredPlayers.includes(userId)) {
+      return false;
+    }
+    
+    // Aggiungere il giocatore
+    tournament.registeredPlayers.push(userId);
+    this.saveToStorage();
+    return true;
+  }
+  
+  unregisterPlayerFromTournament(tournamentId: string, userId: string): boolean {
+    const tournamentIndex = this.tournaments.findIndex(t => t.id === tournamentId);
+    if (tournamentIndex === -1) return false;
+    
+    const tournament = this.tournaments[tournamentIndex];
+    
+    if (!tournament.registeredPlayers) return false;
+    
+    const playerIndex = tournament.registeredPlayers.indexOf(userId);
+    if (playerIndex === -1) return false;
+    
+    tournament.registeredPlayers.splice(playerIndex, 1);
+    this.saveToStorage();
+    return true;
+  }
+  
   // Player methods
   getPlayers(tournamentId: string): Player[] {
     const tournament = this.getTournament(tournamentId);
@@ -141,7 +219,8 @@ export class DataService {
           const existing = allPlayers.get(player.name)!;
           allPlayers.set(player.name, {
             ...existing,
-            points: existing.points + player.points
+            points: existing.points + player.points,
+            photoUrl: player.photoUrl || existing.photoUrl
           });
         } else {
           allPlayers.set(player.name, { ...player });
@@ -150,6 +229,54 @@ export class DataService {
     });
     
     return Array.from(allPlayers.values());
+  }
+  
+  getPlayerByName(name: string): { 
+    player: Player, 
+    tournaments: { 
+      tournament: Tournament, 
+      position: number, 
+      points: number, 
+      qualified: boolean 
+    }[] 
+  } | undefined {
+    const playerTournaments: { 
+      tournament: Tournament, 
+      position: number, 
+      points: number, 
+      qualified: boolean 
+    }[] = [];
+    
+    let playerDetails: Player | undefined;
+    
+    this.tournaments.forEach(tournament => {
+      const playerInTournament = tournament.players.find(p => p.name === name);
+      
+      if (playerInTournament) {
+        if (!playerDetails) {
+          playerDetails = { ...playerInTournament };
+        } else {
+          playerDetails.points += playerInTournament.points;
+          if (!playerDetails.photoUrl && playerInTournament.photoUrl) {
+            playerDetails.photoUrl = playerInTournament.photoUrl;
+          }
+        }
+        
+        playerTournaments.push({
+          tournament,
+          position: playerInTournament.position,
+          points: playerInTournament.points,
+          qualified: playerInTournament.qualified
+        });
+      }
+    });
+    
+    if (!playerDetails) return undefined;
+    
+    return {
+      player: playerDetails,
+      tournaments: playerTournaments
+    };
   }
   
   getPlayerParticipations(): Record<string, number[]> {
@@ -257,6 +384,20 @@ export class DataService {
     this.rewards[index] = { ...this.rewards[index], ...updates };
     this.saveToStorage();
     return this.rewards[index];
+  }
+  
+  // Metodi per verificare la registrazione degli utenti
+  isPlayerRegisteredForTournament(tournamentId: string, userId: string): boolean {
+    const tournament = this.getTournament(tournamentId);
+    if (!tournament || !tournament.registeredPlayers) return false;
+    
+    return tournament.registeredPlayers.includes(userId);
+  }
+  
+  getRegisteredTournaments(userId: string): Tournament[] {
+    return this.tournaments.filter(tournament => 
+      tournament.registeredPlayers && tournament.registeredPlayers.includes(userId)
+    );
   }
 }
 

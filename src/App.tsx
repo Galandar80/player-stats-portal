@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
+import PlayerDetail from "./pages/PlayerDetail";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/registrati" element={<Register />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/profilo" element={<Profile />} />
+              <Route path="/player/:playerName" element={<PlayerDetail />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

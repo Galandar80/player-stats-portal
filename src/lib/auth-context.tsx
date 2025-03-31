@@ -34,6 +34,13 @@ const mockUsers = [
     password: 'password',
     role: 'user' as const,
   },
+  {
+    id: '3',
+    name: 'Redshift Admin',
+    email: 'redshiftg@gmail.com',
+    password: '@1z2x3c4v',
+    role: 'admin' as const,
+  },
 ];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
